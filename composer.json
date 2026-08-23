@@ -1,0 +1,52 @@
+{
+    "name": "codearachnid/simply-connect-laravel-sdk",
+    "description": "Laravel integration for Nuvei Simply Connect: Livewire + Blade checkout components, verified DMN webhooks, facade, testing fakes — built on codearachnid/simply-connect-php-sdk.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["laravel", "livewire", "nuvei", "simply-connect", "safecharge", "payments", "checkout"],
+    "homepage": "https://github.com/codearachnid/simply-connect-laravel-sdk",
+    "authors": [
+        { "name": "Timothy Wood" }
+    ],
+    "require": {
+        "php": "^8.2",
+        "codearachnid/simply-connect-php-sdk": "^1.0 || dev-main",
+        "illuminate/contracts": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/http": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "larastan/larastan": "^3.0",
+        "livewire/livewire": "^3.5 || ^4.0",
+        "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+        "phpunit/phpunit": "^11.0 || ^12.0 || ^13.0"
+    },
+    "suggest": {
+        "livewire/livewire": "Required for the <livewire:simply-connect.checkout /> component."
+    },
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/codearachnid/simply-connect-php-sdk" }
+    ],
+    "autoload": {
+        "psr-4": { "SimplyConnect\\Laravel\\": "src/" }
+    },
+    "autoload-dev": {
+        "psr-4": { "SimplyConnect\\Laravel\\Tests\\": "tests/" }
+    },
+    "extra": {
+        "laravel": {
+            "providers": ["SimplyConnect\\Laravel\\SimplyConnectLaravelServiceProvider"],
+            "aliases": { "SimplyConnect": "SimplyConnect\\Laravel\\Facades\\SimplyConnect" }
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "analyse": "phpstan analyse",
+        "check": ["@analyse", "@test"]
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
