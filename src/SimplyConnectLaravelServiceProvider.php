@@ -12,7 +12,6 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use SimplyConnect\Client;
 use SimplyConnect\Environment;
-use SimplyConnect\Http\Transport;
 use SimplyConnect\Laravel\Http\Controllers\WebhookController;
 use SimplyConnect\Laravel\Http\LaravelTransport;
 use SimplyConnect\Laravel\Livewire\Checkout;
@@ -25,22 +24,12 @@ final class SimplyConnectLaravelServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/simply-connect.php', 'simply-connect');
 
-        // Bind your own Transport to replace the Laravel HTTP client transport.
-        $this->app->bindIf(Transport::class, fn (Application $app) => new LaravelTransport(
+        // Rebind this to route SDK requests through something other than Laravel's HTTP client.
+        $this->app->bindIf(LaravelTransport::class, fn (Application $app) => new LaravelTransport(
             $app->make(HttpFactory::class),
             (int) config('simply-connect.http.timeout', 30),
         ));
 
-        $this->bindClient();
-        // The SDK ships its own auto-discovered provider that also binds Client (with a cURL
-        // transport) and registers after this one, so re-assert our binding just before boot.
-        $this->app->booting(fn () => $this->bindClient());
-
-        $this->app->singleton(SimplyConnect::class, fn (Application $app) => new SimplyConnect($app->make(Client::class), $app->make(Repository::class)));
-    }
-
-    private function bindClient(): void
-    {
         $this->app->singleton(Client::class, function (Application $app): Client {
             $config = (array) config('simply-connect');
 
@@ -49,10 +38,12 @@ final class SimplyConnectLaravelServiceProvider extends ServiceProvider
                 merchantSiteId: (string) ($config['merchant_site_id'] ?? ''),
                 merchantSecretKey: (string) ($config['secret_key'] ?? ''),
                 environment: Environment::fromName((string) ($config['environment'] ?? 'sandbox')),
-                transport: $app->make(Transport::class),
+                transport: $app->make(LaravelTransport::class)(...),
                 hashAlgorithm: (string) ($config['hash_algorithm'] ?? 'sha256'),
             );
         });
+
+        $this->app->singleton(SimplyConnect::class, fn (Application $app) => new SimplyConnect($app->make(Client::class), $app->make(Repository::class)));
     }
 
     public function boot(): void

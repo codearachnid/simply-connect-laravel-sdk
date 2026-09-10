@@ -14,12 +14,23 @@ jobs:
           - php: '8.2'
             laravel: '13.*'
     name: PHP ${{ matrix.php }} / Laravel ${{ matrix.laravel }}
+    defaults:
+      run:
+        working-directory: package
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: package
+      # composer.json uses a path repository for the SDK until it is published on
+      # Packagist; check it out as a sibling so ../simply-connect-php-sdk resolves.
+      - uses: actions/checkout@v4
+        with:
+          repository: codearachnid/simply-connect-php-sdk
+          path: simply-connect-php-sdk
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-      - run: composer require "illuminate/support:${{ matrix.laravel }}" --no-update --no-interaction
+      - run: composer require "illuminate/http:${{ matrix.laravel }}" --no-update --no-interaction
       - run: composer update --prefer-dist --no-interaction --no-progress
       - run: composer check

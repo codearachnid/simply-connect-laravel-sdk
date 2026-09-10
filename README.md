@@ -101,10 +101,12 @@ class PayInvoice extends Checkout
         ];
     }
 
-    protected function approved(TransactionResponse $tx): void
+    protected function completed(string $status, TransactionResponse $tx): void
     {
-        $this->invoice->markPaid($tx->transactionId(), $tx->userPaymentOptionId());
-        $this->redirect(route('invoices.show', $this->invoice));
+        if ($status === 'approved') {
+            $this->invoice->markPaid($tx->transactionId(), $tx->userPaymentOptionId());
+            $this->redirect(route('invoices.show', $this->invoice));
+        }
     }
 }
 ```
@@ -205,7 +207,7 @@ onUnmounted(() => SimplyConnect.destroy());
 <template><div ref="el" /></template>
 ```
 
-`mount(target, config, callbacks)` accepts any [Simply Connect callback](https://docs.nuvei.com/documentation/accept-payment/simply-connect/event-callbacks/) (`onResult`, `prePayment`, `onPaymentEvent`, ...) and still emits the DOM events listed above. Prefer no helper at all? Load `SimplyConnect::scriptUrl()` yourself and call `window.checkout({ ...config, renderTo: '#el', onResult })` — the config is exactly what Nuvei expects.
+`mount(target, config, callbacks)` accepts any [Simply Connect callback](https://docs.nuvei.com/documentation/accept-payment/simply-connect/event-callbacks/) (`onResult`, `prePayment`, `onPaymentEvent`, ...) and still emits the DOM events listed above. Prefer no helper at all? Load Nuvei's `checkout.js` (`\SimplyConnect\Environment::CHECKOUT_SCRIPT_URL`) yourself and call `window.checkout({ ...config, renderTo: '#el', onResult })` — the config is exactly what Nuvei expects.
 
 ## Webhooks (DMN)
 
@@ -244,7 +246,7 @@ SimplyConnect::deleteUserPaymentOption($userTokenId, $upoId);
 SimplyConnect::getMerchantPaymentMethods($sessionToken);           // build pmWhitelist/pmBlacklist
 SimplyConnect::updateOrder([...]);                                  // change an open session
 SimplyConnect::call('getCardDetails', [...], Checksum::SESSION);    // any other REST 1.0 endpoint
-SimplyConnect::client();                                            // the underlying SDK Client
+app(\SimplyConnect\Client::class);                                  // the underlying SDK Client
 ```
 
 All responses, exceptions and parameter names are the SDK's — see its [README](https://github.com/codearachnid/simply-connect-php-sdk#readme). Declines are normal responses (`$tx->isDeclined()`); only API-level failures throw `SimplyConnect\Exception\ApiException`.
@@ -261,7 +263,7 @@ All responses, exceptions and parameter names are the SDK's — see its [README]
 | `checkout` | Defaults merged into every `checkout({...})` config (`locale`, `country`, `savePM`, `pmBlacklist`, `showResponseMessage`, ...) |
 | `webhook.enabled`, `.path`, `.middleware`, `.url` | DMN route; `url` overrides the notification URL sent to Nuvei (local dev) |
 
-Bind your own `SimplyConnect\Http\Transport` in the container to replace the Laravel HTTP client transport.
+Rebind `SimplyConnect\Laravel\Http\LaravelTransport` in the container to route SDK requests through something else.
 
 ## Testing your app
 

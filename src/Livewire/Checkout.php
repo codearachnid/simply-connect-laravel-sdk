@@ -11,6 +11,7 @@ use Livewire\Component;
 use SimplyConnect\Exception\SimplyConnectException;
 use SimplyConnect\Laravel\Facades\SimplyConnect;
 use SimplyConnect\Response\TransactionResponse;
+use SimplyConnect\TransactionStatus;
 
 /**
  * Drop-in checkout: opens the order on mount, renders Nuvei's form, and when
@@ -23,8 +24,8 @@ use SimplyConnect\Response\TransactionResponse;
  * component or Alpine/JS): simply-connect:approved, :declined, :pending,
  * :cancelled, :error — payload ['status' => ..., 'transaction' => [...]].
  *
- * Extend this class to hook into outcomes (approved(), declined(), ...), build
- * the order from your cart (orderParams()) or use your own view (render()).
+ * Extend this class to hook into outcomes (completed()), build the order from
+ * your cart (orderParams()) or use your own view (render()).
  */
 class Checkout extends Component
 {
@@ -96,12 +97,18 @@ class Checkout extends Component
             'clientUniqueId' => $this->clientUniqueId,
         ];
 
-        match (true) {
-            $tx->isApproved() => $this->finish('approved', fn () => $this->approved($tx)),
-            $tx->isDeclined() => $this->finish('declined', fn () => $this->declined($tx), $tx->failureReason()),
-            $tx->isPending() => $this->finish('pending', fn () => $this->pending($tx)),
-            default => $this->finish('error', fn () => $this->failed($tx), $tx->failureReason() ?? 'Payment failed.'),
+        $status = match (true) {
+            $tx->isApproved() => 'approved',
+            $tx->isDeclined() => 'declined',
+            $tx->status() === TransactionStatus::Pending => 'pending',
+            default => 'error',
         };
+        $this->finish($status, error: match ($status) {
+            'declined' => $tx->failureReason(),
+            'error' => $tx->failureReason() ?? 'Payment failed.',
+            default => null,
+        });
+        $this->completed($status, $tx);
     }
 
     /** Start over with a fresh session (after a decline, cancel or error). */
@@ -123,7 +130,7 @@ class Checkout extends Component
             'currency' => $this->currency,
             'userTokenId' => $this->userTokenId,
             'clientUniqueId' => $this->clientUniqueId,
-        ], fn ($v) => $v !== null && $v !== ''), $this->options))->toArray();
+        ], fn ($v) => $v !== null && $v !== ''), $this->options))->jsonSerialize();
     }
 
     public function render(): View
@@ -148,19 +155,8 @@ class Checkout extends Component
         ], fn ($v) => $v !== null && $v !== ''), $this->order);
     }
 
-    protected function approved(TransactionResponse $tx): void
-    {
-    }
-
-    protected function declined(TransactionResponse $tx): void
-    {
-    }
-
-    protected function pending(TransactionResponse $tx): void
-    {
-    }
-
-    protected function failed(TransactionResponse $tx): void
+    /** Called after a verified outcome; $status is approved | declined | pending | error. */
+    protected function completed(string $status, TransactionResponse $tx): void
     {
     }
 
@@ -177,11 +173,10 @@ class Checkout extends Component
         }
     }
 
-    private function finish(string $status, ?\Closure $hook = null, ?string $error = null): void
+    private function finish(string $status, ?string $error = null): void
     {
         $this->status = $status;
         $this->error = $error;
-        $hook?->__invoke();
         $this->dispatch('simply-connect:' . $status, status: $status, transaction: $this->transaction, error: $error, clientUniqueId: $this->clientUniqueId);
     }
 }

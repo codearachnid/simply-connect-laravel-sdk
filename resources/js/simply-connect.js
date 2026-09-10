@@ -25,8 +25,6 @@
     }
 
     var api = {
-        scriptUrl: SCRIPT_URL,
-
         /** Load checkout.js once. Resolves with the global checkout() function. */
         load: function () {
             if (typeof root.checkout === 'function') return Promise.resolve(root.checkout);

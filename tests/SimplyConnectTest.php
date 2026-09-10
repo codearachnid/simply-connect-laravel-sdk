@@ -16,9 +16,9 @@ final class SimplyConnectTest extends TestCase
     {
         $client = $this->app->make(Client::class);
 
-        $this->assertSame(Environment::Sandbox, $client->environment());
-        $this->assertSame($client, SimplyConnect::client());
-        $this->assertInstanceOf(\SimplyConnect\Laravel\Http\LaravelTransport::class, (fn () => $this->transport)->call($client), 'our transport wins over the SDK provider');
+        $this->assertSame($client, (fn () => $this->client)->call($this->app->make(\SimplyConnect\Laravel\SimplyConnect::class)));
+        $transport = (fn () => $this->transport)->call($client);
+        $this->assertInstanceOf(\SimplyConnect\Laravel\Http\LaravelTransport::class, (new \ReflectionFunction($transport))->getClosureThis(), 'requests route through the Laravel HTTP client');
     }
 
     public function test_open_order_merges_defaults_and_sets_notification_url(): void
@@ -60,7 +60,8 @@ final class SimplyConnectTest extends TestCase
         SimplyConnect::fake();
         $order = SimplyConnect::openOrder(['amount' => '10.00', 'currency' => 'EUR', 'clientUniqueId' => 'o-1', 'userTokenId' => 'u-1']);
 
-        $config = SimplyConnect::checkout($order, ['country' => 'DE'])->toArray();
+        $this->assertSame(Environment::Sandbox, SimplyConnect::environment());
+        $config = SimplyConnect::checkout($order, ['country' => 'DE'])->jsonSerialize();
 
         $this->assertSame([
             'sessionToken' => 'fake-session-token', 'env' => 'int', 'merchantId' => '1234567890', 'merchantSiteId' => '987654',

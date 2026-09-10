@@ -23,7 +23,8 @@ return [
     | HTTP
     |--------------------------------------------------------------------------
     | Requests go through Laravel's HTTP client (so Http::fake() and Telescope
-    | work). Timeout in seconds.
+    | work). Timeout in seconds. Rebind SimplyConnect\Laravel\Http\LaravelTransport
+    | in the container to route requests differently.
     */
 
     'http' => [

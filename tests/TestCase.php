@@ -8,14 +8,12 @@ use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 use SimplyConnect\Laravel\Facades\SimplyConnect;
 use SimplyConnect\Laravel\SimplyConnectLaravelServiceProvider;
-use SimplyConnect\Laravel\SimplyConnectServiceProvider;
 
 abstract class TestCase extends Orchestra
 {
     protected function getPackageProviders($app): array
     {
-        // The SDK's own provider is auto-discovered after ours in real apps; mirror that here.
-        return [LivewireServiceProvider::class, SimplyConnectLaravelServiceProvider::class, SimplyConnectServiceProvider::class];
+        return [LivewireServiceProvider::class, SimplyConnectLaravelServiceProvider::class];
     }
 
     protected function getPackageAliases($app): array

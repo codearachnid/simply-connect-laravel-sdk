@@ -7,13 +7,12 @@ namespace SimplyConnect\Laravel\Http;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use SimplyConnect\Exception\TransportException;
-use SimplyConnect\Http\Transport;
 
 /**
  * Sends SDK requests through Laravel's HTTP client, so Http::fake(),
  * Http::assertSent() and Telescope all see Nuvei traffic.
  */
-final class LaravelTransport implements Transport
+final class LaravelTransport
 {
     public function __construct(
         private readonly Factory $http,
@@ -21,7 +20,8 @@ final class LaravelTransport implements Transport
     ) {
     }
 
-    public function post(string $url, array $payload): string
+    /** @param array<string, mixed> $payload */
+    public function __invoke(string $url, array $payload): string
     {
         try {
             $response = $this->http->acceptJson()->timeout($this->timeout)->post($url, $payload);

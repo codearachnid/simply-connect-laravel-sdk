@@ -29,7 +29,6 @@ use SimplyConnect\Webhook\Dmn;
  * @method \SimplyConnect\Response\ApiResponse getUserPaymentOptions(string $userTokenId)
  * @method \SimplyConnect\Response\ApiResponse deleteUserPaymentOption(string $userTokenId, string $userPaymentOptionId)
  * @method \SimplyConnect\Response\ApiResponse call(string $endpoint, array<string, mixed> $params, ?list<string> $checksumOrder = Checksum::ORDER)
- * @method Environment environment()
  */
 class SimplyConnect
 {
@@ -39,9 +38,9 @@ class SimplyConnect
     ) {
     }
 
-    public function client(): Client
+    public function environment(): Environment
     {
-        return $this->client;
+        return Environment::fromName((string) $this->config->get('simply-connect.environment', 'sandbox'));
     }
 
     /**
@@ -95,12 +94,6 @@ class SimplyConnect
         return is_string($url) && $url !== '' ? $url : route('simply-connect.webhook');
     }
 
-    /** URL of Nuvei's checkout.js. */
-    public function scriptUrl(): string
-    {
-        return Environment::CHECKOUT_SCRIPT_URL;
-    }
-
     /*
     |--------------------------------------------------------------------------
     | Testing
@@ -113,19 +106,15 @@ class SimplyConnect
      *
      *   SimplyConnect::fake(['getPaymentStatus' => ['transactionStatus' => 'DECLINED']]);
      *
-     * @param array<string, array<string, mixed>|\Closure|mixed> $responses
+     * @param array<string, array<string, mixed>|\Closure> $responses
      */
     public function fake(array $responses = []): static
     {
-        $base = $this->client->environment()->apiBaseUrl();
+        $base = $this->environment()->apiBaseUrl();
         $stubs = [];
 
         foreach (array_keys($responses + $this->fakeDefaults()) as $endpoint) {
             $override = $responses[$endpoint] ?? null;
-            if ($override !== null && !is_array($override) && !$override instanceof \Closure) {
-                $stubs[$base . $endpoint . '.do'] = $override; // Http::sequence(), Http::response(), ...
-                continue;
-            }
             $stubs[$base . $endpoint . '.do'] = function (Request $request) use ($endpoint, $override) {
                 $default = $this->fakeDefaults($request)[$endpoint] ?? ['status' => 'SUCCESS'];
                 $body = $override instanceof \Closure ? $override($request) : array_replace($default, $override ?? []);
@@ -151,13 +140,6 @@ class SimplyConnect
     public function assertNotSent(string $endpoint): static
     {
         Http::assertNotSent(fn (Request $r) => $this->isEndpoint($r, $endpoint));
-
-        return $this;
-    }
-
-    public function assertNothingSent(): static
-    {
-        Http::assertNothingSent();
 
         return $this;
     }

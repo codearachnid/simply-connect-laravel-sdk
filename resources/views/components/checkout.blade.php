@@ -9,7 +9,7 @@
     Then ALWAYS verify with SimplyConnect::getPaymentStatus($sessionToken) on the server.
 --}}
 @props(['order', 'options' => [], 'id' => 'simply-connect-checkout'])
-@php($config = \SimplyConnect\Laravel\Facades\SimplyConnect::checkout($order, $options)->toArray())
+@php($config = \SimplyConnect\Laravel\Facades\SimplyConnect::checkout($order, $options)->jsonSerialize())
 <x-simply-connect::scripts />
 <div {{ $attributes->merge(['id' => $id]) }}></div>
 <script>window.SimplyConnect.mount(@js('#' . $id), @js($config));</script>
